@@ -1241,7 +1241,7 @@
             }
 
             // タイマーロジック
-            let msg = "🎉 今日の授業はすべて終了しました", rem = "お疲れ様でした！", percent = 100, isBreak = false, isFinished = false, isSleep = false;
+            let msg = "🎉 今日の授業は終了しました", rem = "お疲れ様でした！", percent = 100, isBreak = false, isFinished = false, isSleep = false;
             if (currentSec >= 21 * 3600 || currentSec < 5 * 3600) isSleep = true;
 
             if (dayOfWeek === 0 || dayOfWeek === 6) { msg = "🍵 休日のため授業はありません"; rem = "素敵な週末を！"; isFinished = true; }
