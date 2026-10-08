@@ -1,0 +1,2249 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>授業タイマー・キーワード・みらかけ日程</title>
+    <style>
+        :root {
+            --bg-dark: #030712;
+            --panel-bg: rgba(15, 23, 42, 0.45);
+            --panel-border: rgba(6, 182, 212, 0.25);
+            --cyan: #06b6d4;
+            --cyan-glow: rgba(6, 182, 212, 0.4);
+            --green: #10b981;
+            --green-glow: rgba(16, 185, 129, 0.4);
+            --yellow: #f59e0b;
+            --yellow-glow: rgba(245, 158, 11, 0.3);
+            --red: #ef4444;
+            --red-glow: rgba(239, 68, 68, 0.4);
+            --purple: #a855f7;
+            --purple-glow: rgba(168, 85, 247, 0.4);
+            --orange: #f97316;
+            --text-muted: rgba(156, 163, 175, 0.8);
+            --text-main: #f3f4f6;
+        }
+
+        /* ーーー アクセシビリティ・テーマ設定 ーーー */
+        body.theme-dark {
+            --bg-dark: #0a0a0a;
+            --panel-bg: #121212;
+            --panel-border: #262626;
+            --cyan: #38bdf8;
+            --purple: #c084fc;
+        }
+        body.theme-light {
+            --bg-dark: #f3f4f6;
+            --panel-bg: #ffffff;
+            --panel-border: #d1d5db;
+            --cyan: #0284c7;
+            --green: #16a34a;
+            --yellow: #d97706;
+            --red: #dc2626;
+            --purple: #9333ea;
+            --text-muted: #4b5563;
+            --text-main: #1f2937;
+            background: #f3f4f6;
+            color: var(--text-main);
+        }
+        body.theme-highcontrast {
+            --bg-dark: #000000;
+            --panel-bg: #000000;
+            --panel-border: #ffffff;
+            --cyan: #00ffff;
+            --green: #00ff00;
+            --yellow: #ffff00;
+            --red: #ff0000;
+            --purple: #ff00ff;
+            --text-muted: #ffffff;
+            --text-main: #ffffff;
+            background: #000000;
+        }
+
+        * {
+            box-sizing: border-box;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            color: var(--text-main);
+            background: radial-gradient(circle at 50% 10%, #0f172a 0%, var(--bg-dark) 70%);
+            background-attachment: fixed;
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        .wrapper {
+            max-width: 800px;
+            margin: auto;
+            padding: 16px 10px;
+        }
+
+        .card {
+            background: var(--panel-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid var(--panel-border);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        /* アクセシビリティバー */
+        .accessibility-bar {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .theme-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--panel-border);
+            color: var(--text-main);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .theme-btn:hover { background: rgba(255, 255, 255, 0.15); }
+
+        h1 {
+            text-align: center;
+            font-size: clamp(18px, 4.5vw, 26px);
+            margin: 0 0 4px 0;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            background: linear-gradient(to right, #ffffff, var(--cyan), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        body.theme-light h1 {
+            background: none;
+            -webkit-text-fill-color: initial;
+            color: var(--text-main);
+        }
+
+        .date {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-bottom: 20px;
+            letter-spacing: 0.5px;
+        }
+
+        /* タイマー */
+        .timer {
+            display: flex;
+            justify-content: center;
+            margin: 18px 0 12px;
+        }
+        .timer-panel {
+            position: relative;
+            width: min(100%, 690px);
+            min-height: 245px;
+            padding: 24px 28px;
+            border-radius: 28px;
+            overflow: hidden;
+            background: linear-gradient(135deg, rgba(6,182,212,.10), rgba(15,23,42,.82) 45%, rgba(168,85,247,.10));
+            border: 1px solid rgba(6,182,212,.38);
+            box-shadow: 0 20px 55px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.10), 0 0 30px rgba(6,182,212,.08);
+            display: grid;
+            grid-template-columns: minmax(0,1fr) minmax(220px, 1.25fr);
+            gap: 24px;
+            align-items: center;
+            isolation: isolate;
+        }
+        .timer-panel::before,
+        .timer-panel::after {
+            content: "";
+            position: absolute;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            opacity: .16;
+            z-index: -1;
+            animation: timerOrb 10s ease-in-out infinite alternate;
+            will-change: transform;
+        }
+        .timer-panel::before { background: var(--cyan); left: -70px; top: -80px; }
+        .timer-panel::after { background: var(--purple); right: -70px; bottom: -90px; animation-delay: -3s; }
+        .timer-main { min-width: 0; text-align: center; }
+        .timer-label { font-size: 11px; letter-spacing: 2px; color: var(--text-muted); font-weight: 800; margin-bottom: 5px; }
+        .clock { font-size: clamp(38px, 8vw, 64px); font-weight: 900; color: var(--text-main); line-height: 1; letter-spacing: 1px; text-shadow: 0 0 22px rgba(6,182,212,.22); }
+        .remain { font-size: clamp(15px, 2.7vw, 20px); color: #fde68a; margin-top: 12px; font-weight: 800; }
+        body.theme-light .remain { color: var(--yellow); }
+        .status { text-align: center; font-size: clamp(14px, 3.2vw, 17px); font-weight: 800; margin: 4px 0 18px; padding: 0 8px; }
+        .timer-keyword {
+            min-width: 0;
+            border: 1px solid rgba(168,85,247,.38);
+            background: rgba(0,0,0,.18);
+            border-radius: 22px;
+            padding: 18px 20px;
+            text-align: left;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.07);
+            animation: keywordPulse 3s ease-in-out infinite;
+        }
+        .timer-keyword-label { font-size: 11px; color: var(--purple); font-weight: 900; letter-spacing: 1.5px; margin-bottom: 8px; }
+        .timer-keyword-value { font-size: clamp(22px, 5vw, 34px); line-height: 1.12; font-weight: 950; word-break: break-word; }
+        .timer-keyword-meta { margin-top: 9px; font-size: 11px; color: var(--text-muted); }
+        @keyframes timerOrb { from { transform: translate3d(-6px,-4px,0); } to { transform: translate3d(10px,8px,0); } }
+        @keyframes keywordPulse { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+        .timer-panel.keyword-change .timer-keyword-value { animation: keywordChange .55s cubic-bezier(.2,.8,.2,1); }
+        @keyframes keywordChange { 0% { opacity: .2; transform: translateY(10px) scale(.97); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+        @media (prefers-reduced-motion: reduce) {
+            .timer-panel::before, .timer-panel::after, .timer-keyword, .timer-panel.keyword-change .timer-keyword-value {
+                animation: none !important;
+            }
+        }
+
+        /* フォーカス切替ボタン */
+        .focus-toggle-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .focus-btn {
+            background: rgba(6, 182, 212, 0.08);
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(6, 182, 212, 0.1);
+        }
+        .focus-btn:hover {
+            background: rgba(6, 182, 212, 0.18);
+            box-shadow: 0 0 12px rgba(6, 182, 212, 0.3);
+        }
+
+        /* タイマーのみ表示（フォーカスモード）のCSS制御 */
+        body.focus-mode .accessibility-bar,
+        body.focus-mode h1,
+        body.focus-mode .date,
+        body.focus-mode .status,
+        body.focus-mode .after-school-card,
+        body.focus-mode .section,
+        body.focus-mode .line,
+        body.focus-mode .footer {
+            display: none !important;
+        }
+        body.focus-mode .timer-panel {
+            width: min(96vw, 900px);
+            min-height: 360px;
+            grid-template-columns: 1fr 1.15fr;
+            padding: 38px;
+        }
+        body.focus-mode .clock { font-size: clamp(46px, 10vw, 88px); }
+        body.focus-mode .timer-keyword-value { font-size: clamp(30px, 6vw, 54px); }
+        body.focus-mode .remain {
+            font-size: clamp(13px, 3.5vw, 17px);
+            margin-top: 8px;
+        }
+        body.focus-mode .focus-toggle-container {
+            margin-top: 20px;
+            margin-bottom: 5px;
+        }
+        body.focus-mode .focus-btn {
+            background: rgba(168, 85, 247, 0.1);
+            border-color: var(--purple);
+            color: var(--purple);
+        }
+
+        .after-school-card {
+            background: rgba(16, 185, 129, 0.06);
+            border: 1px dashed var(--green);
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+        .after-school-card.active { display: block; }
+        .after-school-title { font-weight: 700; color: var(--green); margin-bottom: 4px; font-size: 13px; }
+        .after-school-text { font-size: 11px; color: var(--text-main); }
+
+        /* セクション設計 */
+        .section { margin-top: 24px; }
+        .section.hidden-section { display: none !important; }
+        .title { font-size: 13px; font-weight: 700; color: var(--cyan); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, rgba(6, 182, 212, 0.2), transparent); }
+        .title.mirakake-title { color: var(--purple); }
+        .title.news-title { color: var(--orange); }
+        .title.news-title::after { background: linear-gradient(to right, rgba(249, 115, 22, 0.2), transparent); }
+
+        .box { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+
+        /* ーーー 夏休みモード専用スタイル ーーー */
+        .summer-container {
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        body.summer-vacation-mode .normal-content-group {
+            display: none !important;
+        }
+        body.summer-vacation-mode .summer-container {
+            display: flex !important;
+        }
+
+        .summer-hero {
+            background: radial-gradient(circle at 50% 30%, rgba(249, 115, 22, 0.15), rgba(245, 158, 11, 0.05));
+            border: 1px solid rgba(249, 115, 22, 0.3);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        .summer-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f97316, #f59e0b);
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 3px 12px;
+            border-radius: 20px;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .summer-title {
+            font-size: clamp(20px, 5vw, 28px);
+            font-weight: 800;
+            color: #ffffff;
+            margin: 4px 0 12px 0;
+            background: linear-gradient(to right, #fbbf24, #f97316);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        body.theme-light .summer-title {
+            background: none;
+            -webkit-text-fill-color: initial;
+            color: #d97706;
+        }
+        .summer-countdown {
+            font-size: clamp(24px, 6vw, 36px);
+            font-weight: 900;
+            color: #fbbf24;
+            letter-spacing: -0.5px;
+            margin: 10px 0;
+        }
+        .summer-sub {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* ニュースカード */
+        .news-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        body.theme-light .news-card { background: #f9fafb; border-color: #e5e7eb; }
+        .news-tag {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--orange);
+            background: rgba(249, 115, 22, 0.12);
+            padding: 2px 8px;
+            border-radius: 10px;
+            width: fit-content;
+        }
+        .news-headline {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-main);
+            line-height: 1.4;
+        }
+        .news-detail {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* キーワードカード */
+        .keyword {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        body.theme-light .keyword { background: #f9fafb; border-color: #e5e7eb; }
+        .keyword-header { display: flex; align-items: center; justify-content: space-between; }
+        .badge { font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 10px; background: rgba(255, 255, 255, 0.1); }
+        .badge.class { color: var(--cyan); background: rgba(6, 182, 212, 0.1); }
+        .badge.in { color: var(--green); background: rgba(16, 185, 129, 0.1); }
+        .badge.out { color: var(--red); background: rgba(239, 68, 68, 0.1); }
+        .badge.mirakake { color: var(--purple); background: rgba(168, 85, 247, 0.1); }
+        .keyword-body { font-size: 13px; font-weight: 700; color: var(--text-main); word-break: break-all; }
+        .empty-key { color: rgba(255, 255, 255, 0.3); font-weight: 400; font-size: 11px; }
+        body.theme-light .empty-key { color: #9ca3af; }
+
+        /* アコーディオン */
+        .accordion-btn { width: 100%; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 10px 12px; color: var(--text-main); font-weight: 700; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+        body.theme-light .accordion-btn { background: #f3f4f6; border-color: #e5e7eb; }
+        .accordion-container { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+        .accordion-container.open { max-height: 400px; overflow-y: auto; scroll-behavior: smooth; }
+
+        .mirakake-day-block { border-left: 3px solid var(--purple); padding-left: 8px; margin-bottom: 10px; padding-top: 4px; padding-bottom: 4px; scroll-margin-top: 6px; }
+        .mirakake-day-date { font-size: 11px; font-weight: 800; color: var(--purple); margin-bottom: 4px; }
+        .mirakake-grid-compact { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 4px; }
+        .mirakake-item-compact { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.04); padding: 6px; border-radius: 4px; font-size: 11px; }
+        body.theme-light .mirakake-item-compact { background: #f9fafb; border-color: #e5e7eb; }
+        .mirakake-item-name { font-weight: 700; color: var(--text-main); }
+        .mirakake-item-room { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+        /* 管理者モード用スタイル */
+
+        .line { text-align: center; margin-top: 20px; }
+        .line img { height: 32px; opacity: 0.8; }
+        .footer { text-align: center; font-size: 10px; color: var(--text-muted); margin-top: 15px; opacity: 0.5; }
+
+
+        /* ===== 時間割 ===== */
+        .timetable-today {
+            margin-top: 10px;
+        }
+        .timetable-today-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--green);
+            background: rgba(16, 185, 129, 0.10);
+            border: 1px solid rgba(16, 185, 129, 0.28);
+            margin-bottom: 10px;
+        }
+        .timetable-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .timetable-year {
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 10px;
+            min-width: 0;
+        }
+        body.theme-light .timetable-year {
+            background: #f9fafb;
+            border-color: #e5e7eb;
+        }
+        .timetable-year-title {
+            font-size: 13px;
+            font-weight: 900;
+            text-align: center;
+            color: var(--cyan);
+            padding-bottom: 7px;
+            margin-bottom: 7px;
+            border-bottom: 1px solid rgba(6, 182, 212, 0.18);
+        }
+        .timetable-period {
+            padding: 8px 7px;
+            border-radius: 9px;
+            background: rgba(255, 255, 255, 0.035);
+            margin-bottom: 6px;
+        }
+        body.theme-light .timetable-period {
+            background: #ffffff;
+        }
+        .timetable-period:last-child {
+            margin-bottom: 0;
+        }
+        .timetable-period-time {
+            font-size: 9px;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+        }
+        .timetable-period-name {
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1.35;
+            color: var(--text-main);
+            word-break: break-word;
+        }
+        .timetable-range-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0 10px;
+            padding: 8px 10px;
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            background: rgba(255,255,255,.025);
+        }
+        .timetable-range-box label {
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .timetable-range-box select {
+            flex: 1;
+            min-width: 0;
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 7px 9px;
+            background: var(--panel-bg);
+            color: var(--text-main);
+            font-size: 11px;
+            outline: none;
+        }
+        .timetable-range-box select:focus {
+            border-color: var(--cyan);
+        }
+        .timetable-range-day {
+            margin-bottom: 12px;
+            padding: 10px;
+            border: 1px solid rgba(6,182,212,.16);
+            border-radius: 12px;
+            background: rgba(255,255,255,.018);
+        }
+        .timetable-range-day:last-child {
+            margin-bottom: 0;
+        }
+        .timetable-range-day .timetable-day-label {
+            margin-bottom: 8px;
+        }
+        body.theme-light .timetable-range-day {
+            background: #f9fafb;
+            border-color: #e5e7eb;
+        }
+
+        .timetable-day {
+            margin-bottom: 9px;
+        }
+        .timetable-day:last-child {
+            margin-bottom: 0;
+        }
+        .timetable-day .accordion-container {
+            max-height: 0;
+        }
+        .timetable-day .accordion-container.open {
+            max-height: 700px;
+        }
+        .timetable-special {
+            color: var(--purple);
+            font-weight: 900;
+        }
+
+        /* ===== ページ分割UI ===== */
+        .main-nav {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 7px;
+            margin: 0 0 18px;
+            padding: 6px;
+            background: rgba(255,255,255,0.035);
+            border: 1px solid var(--panel-border);
+            border-radius: 14px;
+            position: sticky;
+            top: 8px;
+            z-index: 50;
+            backdrop-filter: blur(16px);
+        }
+        .nav-btn {
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--text-muted);
+            border-radius: 10px;
+            padding: 9px 5px;
+            font-size: 11px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .nav-btn.active {
+            color: var(--text-main);
+            background: rgba(6,182,212,0.13);
+            border-color: rgba(6,182,212,0.35);
+            box-shadow: 0 0 12px rgba(6,182,212,0.08);
+        }
+        .app-page {
+            display: none;
+            animation: pageIn .22s ease;
+        }
+        .app-page.active {
+            display: block;
+        }
+        .page-subtitle {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin: -3px 0 12px;
+        }
+        .page-card-heading {
+            font-size: 12px;
+            font-weight: 900;
+            color: var(--text-main);
+            padding: 9px 11px;
+            margin: 6px 0 10px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.035);
+            border: 1px solid var(--panel-border);
+        }
+        .mirakake-content-card {
+            border: 1px solid rgba(168,85,247,0.22);
+            border-radius: 13px;
+            margin-bottom: 10px;
+            overflow: hidden;
+            background: rgba(168,85,247,0.035);
+        }
+        .mirakake-content-title {
+            padding: 10px 12px;
+            font-size: 13px;
+            font-weight: 900;
+            color: var(--purple);
+            background: rgba(168,85,247,0.09);
+            border-bottom: 1px solid rgba(168,85,247,0.16);
+        }
+        .mirakake-date-row {
+            display: grid;
+            grid-template-columns: 105px 1fr;
+            gap: 8px;
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 11px;
+        }
+        .mirakake-date-row:last-child { border-bottom: 0; }
+        .mirakake-date-value { font-weight: 800; color: var(--text-main); }
+        .mirakake-room-value { color: var(--text-muted); }
+        .mirakake-today-mark { color: var(--green); font-weight: 900; }
+        body.theme-light .page-card-heading { background: #f9fafb; }
+        body.theme-light .mirakake-content-card { background: #faf7ff; }
+
+        /* ===== みらかけ：曜日別 / 内容別 ===== */
+        .mirakake-view-tabs {
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:7px;
+            margin:10px 0 14px;
+            padding:5px;
+            border:1px solid var(--panel-border);
+            background:rgba(255,255,255,0.035);
+            border-radius:12px;
+        }
+        .mirakake-view-tab {
+            border:1px solid transparent;
+            background:transparent;
+            color:var(--text-muted);
+            border-radius:9px;
+            padding:9px 6px;
+            font-size:11px;
+            font-weight:900;
+            cursor:pointer;
+        }
+        .mirakake-view-tab.active {
+            color:var(--text-main);
+            background:rgba(168,85,247,0.13);
+            border-color:rgba(168,85,247,0.34);
+        }
+        .mirakake-weekday-card,
+        .mirakake-content-card {
+            border:1px solid var(--panel-border);
+            background:rgba(255,255,255,0.025);
+            border-radius:13px;
+            padding:10px;
+            margin-bottom:9px;
+        }
+        body.theme-light .mirakake-weekday-card,
+        body.theme-light .mirakake-content-card { background:#f9fafb; }
+        .mirakake-weekday-title {
+            color:var(--cyan);
+            font-size:12px;
+            font-weight:900;
+            margin-bottom:7px;
+        }
+        .mirakake-date-row {
+            display:flex;
+            justify-content:space-between;
+            gap:8px;
+            padding:7px 8px;
+            border-radius:8px;
+            background:rgba(255,255,255,0.035);
+            margin-top:5px;
+            font-size:10px;
+        }
+        body.theme-light .mirakake-date-row { background:#fff; }
+        .mirakake-content-title {
+            color:var(--purple);
+            font-size:12px;
+            font-weight:900;
+            margin-bottom:7px;
+        }
+        .mirakake-today-mark {
+            color:var(--green);
+            font-weight:900;
+        }
+        @media (max-width: 600px) {
+            .mirakake-date-row { grid-template-columns: 1fr; gap: 2px; }
+        }
+        .day-tabs {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 7px;
+            margin-bottom: 12px;
+        }
+        .day-tab {
+            border: 1px solid rgba(6,182,212,0.22);
+            background: rgba(6,182,212,0.06);
+            color: var(--cyan);
+            border-radius: 9px;
+            padding: 8px 4px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .day-tab.active {
+            background: rgba(6,182,212,0.18);
+            border-color: var(--cyan);
+            box-shadow: 0 0 12px rgba(6,182,212,0.12);
+        }
+        .keyword-page-card {
+            margin-top: 8px;
+        }
+        .timetable-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .timetable-year {
+            background: rgba(255,255,255,0.025);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 10px;
+            min-width: 0;
+        }
+        body.theme-light .timetable-year {
+            background: #f9fafb;
+            border-color: #e5e7eb;
+        }
+        .timetable-year-title {
+            text-align: center;
+            color: var(--cyan);
+            font-size: 13px;
+            font-weight: 900;
+            padding-bottom: 7px;
+            margin-bottom: 7px;
+            border-bottom: 1px solid rgba(6,182,212,0.18);
+        }
+        .timetable-period {
+            background: rgba(255,255,255,0.035);
+            border-radius: 9px;
+            padding: 8px 7px;
+            margin-bottom: 6px;
+        }
+        body.theme-light .timetable-period {
+            background: #fff;
+        }
+        .timetable-period:last-child { margin-bottom: 0; }
+        .timetable-period-time {
+            font-size: 9px;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+        }
+        .timetable-period-name {
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+        .timetable-special {
+            color: var(--purple);
+            font-weight: 900;
+        }
+        .timetable-day-label {
+            display: inline-flex;
+            padding: 4px 10px;
+            border-radius: 999px;
+            color: var(--green);
+            background: rgba(16,185,129,0.10);
+            border: 1px solid rgba(16,185,129,0.28);
+            font-size: 10px;
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+        @keyframes pageIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @media (max-width: 600px) {
+            .timetable-grid { grid-template-columns: 1fr; }
+            .main-nav { gap: 4px; }
+            .nav-btn { font-size: 10px; padding: 8px 2px; }
+        }
+
+        @media (max-width: 600px) {
+            .timetable-grid {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            .timetable-year {
+                padding: 9px;
+            }
+        }
+
+        @media (max-width: 600px) { .box { grid-template-columns: 1fr; } .mirakake-grid-compact { grid-template-columns: 1fr; } }
+
+        /* ===== 部分スクロール・絞り込み・読み込み表示 ===== */
+        .inner-scroll-panel { max-height:62vh; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scrollbar-width:thin; padding-right:4px; }
+        .inner-scroll-panel::-webkit-scrollbar { width:6px; }
+        .inner-scroll-panel::-webkit-scrollbar-thumb { background:rgba(156,163,175,.35); border-radius:99px; }
+        .filter-panel { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin:8px 0 12px; padding:8px; border:1px solid var(--panel-border); border-radius:12px; background:rgba(255,255,255,.025); }
+        .filter-panel input,.filter-panel select { width:100%; box-sizing:border-box; border:1px solid var(--panel-border); border-radius:8px; padding:8px 9px; background:var(--panel-bg); color:var(--text-main); font-size:11px; outline:none; }
+        .filter-panel input:focus,.filter-panel select:focus { border-color:var(--cyan); }
+        .filter-label { grid-column:1/-1; font-size:10px; color:var(--text-muted); font-weight:800; }
+        .filter-reset { border:1px solid rgba(239,68,68,.28); background:rgba(239,68,68,.07); color:#f87171; border-radius:8px; padding:7px; font-size:10px; font-weight:800; cursor:pointer; }
+        .filter-empty { padding:16px 8px; text-align:center; color:var(--text-muted); font-size:11px; }
+        .keyword-loading { display:flex; align-items:center; justify-content:center; gap:9px; padding:20px 10px; color:var(--text-muted); font-size:12px; }
+        .keyword-loading-dots { display:inline-flex; gap:4px; }
+        .keyword-loading-dots span { width:6px; height:6px; border-radius:50%; background:currentColor; animation:keywordLoading 1.1s infinite ease-in-out; opacity:.35; }
+        .keyword-loading-dots span:nth-child(2){animation-delay:.15s}.keyword-loading-dots span:nth-child(3){animation-delay:.3s}
+        @keyframes keywordLoading { 0%,60%,100%{transform:translateY(0);opacity:.3}30%{transform:translateY(-5px);opacity:1} }
+        .timer-keyword-loading-dots { display:inline-flex; gap:4px; margin-left:4px; vertical-align:middle; }
+        .timer-keyword-loading-dots span { width:6px; height:6px; border-radius:50%; background:currentColor; display:inline-block; animation:keywordLoading 1.1s infinite ease-in-out; opacity:.35; }
+        .timer-keyword-loading-dots span:nth-child(2){animation-delay:.15s}.timer-keyword-loading-dots span:nth-child(3){animation-delay:.3s}
+        @media (prefers-reduced-motion: reduce) {
+            .timer-keyword-loading-dots span { animation:none !important; opacity:.5; }
+        }
+        @media (max-width:600px){ .filter-panel{grid-template-columns:1fr;} }
+
+
+    
+        /* ===== 時間割カレンダー ===== */
+        .timetable-calendar-box { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:7px; align-items:center; margin:8px 0 12px; padding:8px; border:1px solid var(--panel-border); border-radius:12px; background:rgba(255,255,255,.025); }
+        .timetable-calendar-box input[type="date"] { width:100%; min-width:0; box-sizing:border-box; border:1px solid var(--panel-border); border-radius:9px; padding:9px 10px; background:var(--panel-bg); color:var(--text-main); font-size:12px; font-weight:800; color-scheme:dark; touch-action:manipulation; }
+        body.theme-light .timetable-calendar-box input[type="date"] { color-scheme:light; }
+        .calendar-today-btn { border:1px solid rgba(6,182,212,.28); background:rgba(6,182,212,.08); color:var(--cyan); border-radius:9px; padding:9px 11px; font-size:11px; font-weight:900; cursor:pointer; touch-action:manipulation; }
+        .report-next-card { margin:0 0 12px; padding:10px 11px; border:1px solid rgba(245,158,11,.28); border-radius:12px; background:rgba(245,158,11,.06); }
+        .report-next-title { font-size:10px; color:var(--yellow); font-weight:900; margin-bottom:4px; }
+        .report-next-date { font-size:14px; font-weight:900; color:var(--text-main); }
+        .report-next-items { margin-top:4px; font-size:10px; color:var(--text-muted); line-height:1.6; }
+        .global-search-page { margin-top:8px; }
+        .global-search-input { width:100%; box-sizing:border-box; border:1px solid var(--panel-border); border-radius:10px; padding:10px 11px; background:var(--panel-bg); color:var(--text-main); font-size:12px; outline:none; touch-action:manipulation; }
+        .global-search-input:focus { border-color:var(--cyan); }
+        .global-search-result { border:1px solid var(--panel-border); border-radius:11px; padding:9px 10px; margin-bottom:7px; background:rgba(255,255,255,.025); }
+        .global-search-result-title { font-size:11px; font-weight:900; color:var(--cyan); }
+        .global-search-result-body { font-size:11px; margin-top:3px; }
+        @media (max-width:600px){ .timetable-calendar-box { grid-template-columns:1fr; } .calendar-today-btn { width:100%; } .main-nav { position:relative; top:auto; } .inner-scroll-panel { max-height:62vh; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; touch-action:pan-y; -webkit-overflow-scrolling:touch; } }
+        .app-page, .section, .filter-panel, .timetable-period, .keyword, .mirakake-date-row, button, input, select { touch-action:manipulation; }
+
+
+        /* =========================================================
+           UIリデザイン：すっきり・横スクロール・タップ操作改善
+           既存機能は変更せず、見た目と操作性だけを整理
+        ========================================================= */
+
+        html {
+            scroll-behavior: smooth;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background:
+                radial-gradient(circle at 12% 0%, rgba(6,182,212,.13), transparent 28%),
+                radial-gradient(circle at 88% 12%, rgba(168,85,247,.12), transparent 30%),
+                linear-gradient(180deg, #070b16 0%, #030712 55%, #02040a 100%);
+        }
+
+        .wrapper {
+            max-width: 900px;
+            padding: 14px 10px 28px;
+        }
+
+        .card {
+            border-radius: 24px;
+            padding: clamp(14px, 3vw, 24px);
+            border-color: rgba(56,189,248,.18);
+            box-shadow:
+                0 24px 70px rgba(0,0,0,.48),
+                inset 0 1px 0 rgba(255,255,255,.07);
+        }
+
+        /* 設定ボタンも折り返さず、横一列で整理 */
+        .accessibility-bar {
+            justify-content: flex-start;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            padding: 2px 2px 6px;
+            margin-bottom: 10px;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-x;
+        }
+        .accessibility-bar::-webkit-scrollbar { display:none; }
+        .theme-btn {
+            flex: 0 0 auto;
+            min-height: 32px;
+            padding: 6px 11px;
+            border-radius: 999px;
+            background: rgba(255,255,255,.045);
+            border-color: rgba(255,255,255,.09);
+        }
+
+        h1 {
+            margin-bottom: 6px;
+            letter-spacing: .8px;
+            text-shadow: 0 0 28px rgba(56,189,248,.10);
+        }
+
+        .date {
+            margin-bottom: 16px;
+            font-size: 11px;
+        }
+
+        /* メインメニュー：5項目を1列の横スクロールに */
+        .nav-shell {
+            position: relative;
+            margin: 0 0 18px;
+        }
+
+        .main-nav {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 8px;
+            margin: 0;
+            padding: 6px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+            touch-action: pan-x;
+            scroll-snap-type: x proximity;
+            position: sticky;
+            top: 8px;
+            z-index: 50;
+            border-radius: 16px;
+            background: rgba(8,13,28,.78);
+            border: 1px solid rgba(56,189,248,.18);
+            box-shadow: 0 12px 35px rgba(0,0,0,.24);
+        }
+        .main-nav::-webkit-scrollbar { display:none; }
+
+        .nav-btn {
+            flex: 0 0 clamp(112px, 17vw, 150px);
+            min-height: 48px;
+            padding: 10px 9px;
+            border-radius: 12px;
+            font-size: 12px;
+            letter-spacing: .15px;
+            scroll-snap-align: center;
+            white-space: nowrap;
+        }
+
+        .nav-btn.active {
+            background: linear-gradient(135deg, rgba(6,182,212,.18), rgba(168,85,247,.10));
+            border-color: rgba(56,189,248,.38);
+            box-shadow: 0 0 22px rgba(6,182,212,.09), inset 0 1px 0 rgba(255,255,255,.06);
+        }
+
+        /* 左右にまだ項目があることを示す矢印 */
+        .nav-edge {
+            display: none;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 60;
+            width: 34px;
+            height: 34px;
+            border: 1px solid rgba(56,189,248,.30);
+            border-radius: 50%;
+            background: rgba(5,10,22,.88);
+            color: var(--text-main);
+            font-size: 25px;
+            line-height: 28px;
+            padding: 0 0 3px;
+            cursor: pointer;
+            box-shadow: 0 6px 18px rgba(0,0,0,.32);
+            touch-action: manipulation;
+        }
+        .nav-edge:hover { background: rgba(6,182,212,.18); }
+        .nav-edge-left { left: 10px; }
+        .nav-edge-right { right: 10px; }
+        .nav-shell.has-left .nav-edge-left,
+        .nav-shell.has-right .nav-edge-right { display:block; }
+
+        /* 矢印の下にあるメニューが見えるよう、端だけグラデーション */
+        .nav-shell.has-left::before,
+        .nav-shell.has-right::after {
+            content: "";
+            position: absolute;
+            top: 6px;
+            bottom: 6px;
+            width: 52px;
+            z-index: 55;
+            pointer-events: none;
+        }
+        .nav-shell.has-left::before {
+            left: 6px;
+            background: linear-gradient(90deg, rgba(8,13,28,.96), transparent);
+            border-radius: 14px 0 0 14px;
+        }
+        .nav-shell.has-right::after {
+            right: 6px;
+            background: linear-gradient(270deg, rgba(8,13,28,.96), transparent);
+            border-radius: 0 14px 14px 0;
+        }
+
+        /* セクション間の余白を整理 */
+        .section { margin-top: 18px; }
+        .section + .section { margin-top: 22px; }
+
+        .title {
+            font-size: 14px;
+            margin-bottom: 9px;
+            letter-spacing: .7px;
+        }
+
+        .page-subtitle {
+            line-height: 1.65;
+            margin-bottom: 13px;
+        }
+
+        .timetable-calendar-box,
+        .filter-panel,
+        .global-search-page,
+        .section {
+            border-color: rgba(56,189,248,.14);
+        }
+
+        .timetable-calendar-box {
+            padding: 10px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(255,255,255,.035), rgba(255,255,255,.018));
+        }
+
+        .timetable-calendar-box input[type="date"],
+        .calendar-today-btn,
+        .filter-panel input,
+        .filter-panel select,
+        .filter-reset,
+        .global-search-input {
+            min-height: 42px;
+            font-size: 12px;
+            border-radius: 11px;
+        }
+
+        .report-next-card {
+            border-radius: 14px;
+            padding: 12px 13px;
+            background: linear-gradient(135deg, rgba(245,158,11,.09), rgba(245,158,11,.035));
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+        }
+
+        .filter-panel {
+            padding: 10px;
+            gap: 8px;
+            border-radius: 14px;
+            background: rgba(255,255,255,.025);
+        }
+
+        .filter-label {
+            font-size: 11px;
+            letter-spacing: .2px;
+        }
+
+        .timetable-grid {
+            gap: 12px;
+        }
+
+        .timetable-year {
+            border-radius: 16px;
+            padding: 11px;
+            background: linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.018));
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+        }
+
+        .timetable-period {
+            padding: 9px;
+            border-radius: 10px;
+            border-color: rgba(255,255,255,.04);
+        }
+
+        .global-search-result {
+            padding: 11px 12px;
+            border-radius: 13px;
+            background: linear-gradient(135deg, rgba(255,255,255,.035), rgba(255,255,255,.018));
+        }
+
+        /* ネストしたスクロール領域を極力なくし、ページ全体を自然にスクロール */
+        .inner-scroll-panel {
+            max-height: none;
+            overflow-y: visible;
+            overflow-x: visible;
+            overscroll-behavior: auto;
+            -webkit-overflow-scrolling: auto;
+            touch-action: pan-y;
+            padding-right: 0;
+        }
+
+        /* ボタン・入力は確実にタップ可能に */
+        button, input, select {
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        input[type="search"], input[type="text"] {
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        @media (max-width: 600px) {
+            .wrapper { padding: 9px 7px 24px; }
+            .card { border-radius: 20px; padding: 13px; }
+            .main-nav { top: 5px; }
+            .nav-btn { flex-basis: 116px; min-height: 46px; }
+            .nav-edge { width: 32px; height: 32px; font-size: 23px; }
+            .nav-edge-left { left: 9px; }
+            .nav-edge-right { right: 9px; }
+            .timetable-grid { grid-template-columns: 1fr; gap: 9px; }
+            .timetable-year { padding: 10px; }
+            .section { margin-top: 15px; }
+        }
+
+
+        /* ===== みらかけのデータ欄だけをスクロール =====
+           ページ全体ではなく、日付別・内容別のデータ領域を
+           独立してスクロールさせる。
+        */
+        #mirakake-weekday-view,
+        #mirakake-content-view {
+            max-height: 68vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            padding-right: 4px;
+            touch-action: pan-y;
+            scroll-behavior: smooth;
+        }
+
+        #mirakake-weekday-view::-webkit-scrollbar,
+        #mirakake-content-view::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #mirakake-weekday-view::-webkit-scrollbar-thumb,
+        #mirakake-content-view::-webkit-scrollbar-thumb {
+            background: rgba(156,163,175,.35);
+            border-radius: 99px;
+        }
+
+        @media (max-width:600px) {
+            #mirakake-weekday-view,
+            #mirakake-content-view {
+                max-height: 68vh;
+                overflow-y: auto;
+                overflow-x: hidden;
+                overscroll-behavior: contain;
+                touch-action: pan-y;
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+
+        /* ===== タイマーの重なり防止・軽量化 ===== */
+        .timer-panel {
+            box-sizing: border-box;
+        }
+        .timer-keyword {
+            overflow: hidden;
+            animation: none;
+        }
+        .timer-panel::before,
+        .timer-panel::after {
+            animation: none;
+        }
+        .timer-keyword-value,
+        .timer-keyword-label,
+        .timer-keyword-meta {
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        /* 幅が十分ある端末では2列、狭い端末では上下に積む */
+        @media (max-width: 720px) {
+            .timer-panel,
+            body.focus-mode .timer-panel {
+                width: 100%;
+                min-height: 0;
+                grid-template-columns: minmax(0, 1fr);
+                gap: 14px;
+                padding: 18px;
+            }
+            .timer-main {
+                width: 100%;
+            }
+            .clock,
+            body.focus-mode .clock {
+                font-size: clamp(34px, 12vw, 54px);
+                white-space: nowrap;
+            }
+            .timer-keyword,
+            body.focus-mode .timer-keyword {
+                width: 100%;
+                box-sizing: border-box;
+                padding: 14px 16px;
+            }
+            .timer-keyword-value,
+            body.focus-mode .timer-keyword-value {
+                font-size: clamp(20px, 7vw, 34px);
+            }
+        }
+
+        /* 極端に狭い画面でも左右にはみ出さない */
+        @media (max-width: 390px) {
+            .timer-panel,
+            body.focus-mode .timer-panel {
+                padding: 15px 12px;
+                gap: 11px;
+            }
+            .clock,
+            body.focus-mode .clock {
+                font-size: 34px;
+                letter-spacing: 0;
+            }
+            .timer-keyword-label {
+                font-size: 10px;
+                letter-spacing: 1px;
+            }
+        }
+
+        /* フォーカスモードでも常にパネル内に収める */
+        body.focus-mode .timer-panel {
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        body.focus-mode .timer-keyword {
+            min-width: 0;
+        }
+
+</style>
+</head>
+<body>
+<div class="wrapper">
+    <!-- アクセシビリティバー（最上部設定） -->
+    <div class="accessibility-bar">
+        <button class="theme-btn" onclick="changeTheme('cyber')">🌐 サイバー</button>
+        <button class="theme-btn" onclick="changeTheme('dark')">🌑 ダーク</button>
+        <button class="theme-btn" onclick="changeTheme('light')">☀️ ライト</button>
+        <button class="theme-btn" onclick="changeTheme('highcontrast')">👁️ 高コントラスト</button>
+    </div>
+    <div style="text-align:center; margin-bottom:12px;">
+        <button class="theme-btn" id="notification-btn" onclick="enableNotifications()">🔔 通知をONにする</button>
+        <span id="notification-status" style="font-size:10px;color:var(--text-muted);margin-left:6px;">通知OFF</span>
+    </div>
+
+    <div class="card">
+        <!-- ヘッダー -->
+        <h1>授業タイマー・キーワード・みらかけ日程</h1>
+        <div class="date" id="date"></div>
+
+        <div class="nav-shell" id="main-nav-shell">
+            <button class="nav-edge nav-edge-left" id="nav-edge-left" type="button" aria-label="メニューを左へスクロール" onclick="scrollMainNav(-1)">‹</button>
+            <nav class="main-nav" id="main-nav" aria-label="メインメニュー">
+                <button class="nav-btn active" data-page="home" onclick="showPage('home')">🏠 ホーム</button>
+                <button class="nav-btn" data-page="timetable" onclick="showPage('timetable')">📚 時間割</button>
+                <button class="nav-btn" data-page="keywords" onclick="showPage('keywords')">🔑 キーワード</button>
+                <button class="nav-btn" data-page="mirakake" onclick="showPage('mirakake')">🎨 みらかけ</button>
+                <button class="nav-btn" data-page="search" onclick="showPage('search')">🔍 検索</button>
+            </nav>
+            <button class="nav-edge nav-edge-right" id="nav-edge-right" type="button" aria-label="メニューを右へスクロール" onclick="scrollMainNav(1)">›</button>
+        </div>
+
+        <!-- ＝＝＝ 通常期間用コンテンツグループ ＝＝＝ -->
+        <div class="normal-content-group" id="normal-content-group">
+            <!-- ① 授業タイマー -->
+            <div class="timer">
+                <div class="timer-panel" id="timer-panel">
+                    <div class="timer-main">
+                        <div class="timer-label">LIVE CLASS TIMER</div>
+                        <div class="clock" id="clock">00:00:00</div>
+                        <div class="remain" id="remain">ONLINE</div>
+                    </div>
+                    <div class="timer-keyword" id="timer-keyword-card">
+                        <div class="timer-keyword-label">🔑 THIS PERIOD'S KEYWORD</div>
+                        <div class="timer-keyword-value" id="timer-keyword">待機中</div>
+                        <div class="timer-keyword-meta" id="timer-keyword-meta">授業開始前</div>
+                    </div>
+                </div>
+            </div>
+            <div class="status" id="status">SYSTEM READY</div>
+
+            <!-- 📺 タイマー全画面（フォーカス）切替トグルボタン -->
+            <div class="focus-toggle-container">
+                <button class="focus-btn" id="focus-toggle-btn" onclick="toggleFocusMode()">📺 タイマーのみ表示</button>
+            </div>
+
+            <div class="after-school-card" id="after-school-msg">
+                <div class="after-school-title">✨ TODAY'S LESSONS COMPLETED ✨</div>
+                <div class="after-school-text" id="after-school-text"></div>
+            </div>
+
+            <!-- ② 今日のキーワード (固定配列順) -->
+            <div class="section" id="today-keywords-section">
+                <div class="title">✨ 今日のキーワード</div>
+                <div id="keyword-home-loading" class="keyword-loading" style="display:none;"><span>キーワード読み込み中</span><span class="keyword-loading-dots"><span></span><span></span><span></span></span></div>
+                <div id="today" class="box"></div>
+                <div id="demo-notice" style="display:none; font-size:11px; color:var(--yellow); text-align:center; margin-top:5px;"></div>
+            </div>
+
+
+            <!-- HOME: 今日のみらいの架け橋レッスン -->
+            <div class="section" id="mirakake-today-section">
+                <div class="title mirakake-title">🎨 今日のみらいの架け橋レッスン (12:50〜14:20)</div>
+                <div id="mirakake-today" class="box"></div>
+            </div>
+
+        </div>
+
+        <!-- ===== ページ: 時間割 ===== -->
+        <section class="app-page" id="page-timetable">
+            <div class="section">
+                <div class="title">📚 時間割</div>
+                <div class="page-subtitle">カレンダーから日付を選ぶと、その日の1〜3限を学年ごとに表示します。</div>
+                <div class="timetable-calendar-box">
+                    <input id="timetable-date-picker" type="date" aria-label="時間割の日付を選択" onchange="handleTimetableDateChange(this.value)">
+                    <button class="calendar-today-btn" type="button" onclick="selectTimetableToday()">📅 今日</button>
+                </div>
+                <div class="timetable-range-box">
+                    <label for="timetable-range-filter">📅 表示範囲</label>
+                    <select id="timetable-range-filter" onchange="applyTimetableFilter()">
+                        <option value="day">1日だけ</option>
+                        <option value="week">1週間</option>
+                        <option value="month">月全体</option>
+                        <option value="all">全体</option>
+                    </select>
+                </div>
+                <div id="report-next-card" class="report-next-card"></div>
+                <div class="filter-panel">
+                    <div class="filter-label">🔎 時間割を絞り込み</div>
+                    <select id="timetable-year-filter" onchange="applyTimetableFilter()"><option value="all">すべての年次</option><option value="1年次">1年次</option><option value="2年次">2年次</option><option value="3年次">3年次</option></select>
+                    <select id="timetable-report-filter" onchange="applyTimetableFilter()"><option value="all">すべての授業</option><option value="report">📄 レポートだけ</option></select>
+                    <input id="timetable-subject-filter" type="search" placeholder="科目名・内容で検索" oninput="applyTimetableFilter()">
+                    <button class="filter-reset" onclick="resetTimetableFilter()">↺ 絞り込みをリセット</button>
+                </div>
+                <div id="timetable-page-content" class="inner-scroll-panel"></div>
+            </div>
+        </section>
+
+        <!-- ===== ページ: 全体検索 ===== -->
+        <section class="app-page" id="page-search">
+            <div class="section global-search-page">
+                <div class="title">🔍 全体検索</div>
+                <div class="page-subtitle">時間割・キーワード・みらかけをまとめて検索できます。</div>
+                <input id="global-search-input" class="global-search-input" type="search" placeholder="科目名・レポート・日付・キーワードなど" oninput="renderGlobalSearch()" autocomplete="off">
+                <div id="global-search-results" style="margin-top:12px;"></div>
+            </div>
+        </section>
+
+        <!-- ===== ページ: キーワード履歴 ===== -->
+        <section class="app-page" id="page-keywords">
+            <div class="section">
+                <div class="title">🔑 キーワード</div>
+                <div class="page-subtitle">今日のキーワードはホームに表示。過去のキーワードはこちら。</div>
+                <div class="keyword-page-card">
+                    <div class="page-card-heading">📋 過去のキーワード履歴</div>
+                    <div class="filter-panel">
+                        <div class="filter-label">🔎 キーワードを絞り込み</div>
+                        <select id="keyword-type-filter" onchange="renderKeywordHistory()"><option value="all">すべての種類</option><option value="登校">登校</option><option value="授業">授業</option><option value="下校">下校</option></select>
+                        <input id="keyword-search-filter" type="search" placeholder="キーワード・日付・時間を検索" oninput="renderKeywordHistory()">
+                        <button class="filter-reset" onclick="resetKeywordFilter()">↺ 絞り込みをリセット</button>
+                    </div>
+                    <div id="keyword-loading" class="keyword-loading" style="display:none;"><span>キーワード読み込み中</span><span class="keyword-loading-dots"><span></span><span></span><span></span></span></div>
+                    <div id="history" class="inner-scroll-panel" style="padding:10px 5px; display:flex; flex-direction:column; gap:12px;"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== ページ: みらかけ ===== -->
+        <section class="app-page" id="page-mirakake">
+            <div class="section">
+                <div class="title mirakake-title">🎨 みらいの架け橋</div>
+                <div class="page-subtitle">普段は曜日別。必要なときだけ内容別にも切り替えられます。</div>
+
+                <div class="mirakake-view-tabs">
+                    <button class="mirakake-view-tab active" id="mirakake-view-weekday-btn" onclick="showMirakakeView('weekday')">📅 日付別</button>
+                    <button class="mirakake-view-tab" id="mirakake-view-content-btn" onclick="showMirakakeView('content')">🎨 内容別</button>
+                </div>
+
+                <div class="filter-panel">
+                    <div class="filter-label">🔎 みらかけ日程を絞り込み</div>
+                    <select id="mirakake-room-filter" onchange="applyMirakakeFilter()"><option value="all">すべての部屋</option><option value="9A">9A</option><option value="9B">9B</option><option value="9C">9C</option><option value="6F">6F</option></select>
+                    <input id="mirakake-search-filter" type="search" placeholder="内容・日付を検索" oninput="applyMirakakeFilter()">
+                    <button class="filter-reset" onclick="resetMirakakeFilter()">↺ 絞り込みをリセット</button>
+                </div>
+                <div id="mirakake-weekday-view" class="inner-scroll-panel"></div>
+                <div id="mirakake-content-view" class="inner-scroll-panel" style="display:none;"></div>
+            </div>
+        </section>
+
+
+        <!-- ＝＝＝ 🌻 夏休み期間中（7/18〜8/23）専用表示エリア ＝＝＝ -->
+        <div class="summer-container" id="summer-container">
+            <div class="summer-hero">
+                <span class="summer-badge">SUMMER VACATION MODE</span>
+                <div class="summer-title">🌻 夏休みの特別時間割 🌴</div>
+                <p style="font-size:12px; color:var(--text-muted); margin:0;">現在校舎は夏休み期間中です。通常授業および「みらかけ」はお休みとなります。</p>
+                <div class="summer-countdown" id="summer-countdown">夏休み最終日まで あと - 日</div>
+                <div class="summer-sub" id="summer-sub-info">新学期（8月24日）まで、体調に気をつけて有意義な休日をお過ごしください！</div>
+            </div>
+
+            <div class="section">
+                <div class="title news-title">📰 今日のデイリー・ニュース & トピックス</div>
+                <div id="summer-news-box">
+                    <!-- JavaScriptで日替わり生成 -->
+                </div>
+            </div>
+        </div>
+
+
+        <div class="line">
+            <a href="https://lin.ee/YkfIPJ8" target="_blank" rel="noopener noreferrer">
+                <img src="https://scdn.line-apps.com/n/line_add_friends/btn/ja.png" alt="友だち追加">
+            </a>
+        </div>
+        <div class="footer">POWERED BY GOOGLE APPS SCRIPT</div>
+    </div>
+</div>
+
+<script src="data/timetable-data.js"></script>
+<script src="data/mirakake-data.js"></script>
+<script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxKQU0nkigff43QcWPp9tEEtIFxH57Bn89c3qYH6Q2BZd-_z3L2DszNaPY2Ka6XlweZ/exec";
+
+    
+
+    
+
+    // 日替わりニュース・トリビアデータバンク
+    const dailyNewsDb = [
+        { tag: "💡 今日の豆知識", headline: "夏休みにエアコンの冷房効率を最大にする秘訣", detail: "室風向きを「水平」に設定し、扇風機やサーキュレーターを上向きに回すと部屋全体の温度が一気に均一になります！" },
+        { tag: "🚀 テック＆未来", headline: "AI時代の夏休みの宿題・自由研究のトレンド", detail: "最近の自由研究では、プログラミングや生成AIを使って「自分だけのWebアプリを作る」挑戦をする高校生が急増中！" },
+        { tag: "🌊 季節のアドバイス", headline: "こまめな水分＆塩分補給を忘れずに", detail: "のどが渇く前に水分を補給するのがポイント。室内でも熱中症対策を万全にして有意義な夏休みを！" },
+        { tag: "📚 おすすめの過ごし方", headline: "読書や新しい趣味をひとつ始めてみよう", detail: "普段はなかなか時間を取れない長編小説や、動画編集・イラスト制作など新しいスキルに触れる絶好のチャンスです。" },
+        { tag: "🎮 リフレッシュ", headline: "ゲームやデジタル機器の「画面休憩」も大切に", detail: "1時間画面を見たら5分〜10分は遠くの景色を見て目を休めましょう。目の疲労回復が集中力長持ちの秘訣！" },
+        { tag: "✨ 今日の一言", headline: "「小さな継続が大きな成果を作る」", detail: "1日15分でも自分の好きなことや勉強を続けると、夏休みが終わる頃には大きな成長につながっています！" }
+    ];
+
+    // アクセシビリティ：テーマ変更
+    function changeTheme(theme) {
+        document.body.classList.remove('theme-dark', 'theme-light', 'theme-highcontrast');
+        if(theme !== 'cyber') {
+            document.body.classList.add('theme-' + theme);
+        }
+    }
+
+    // フォーカスモード（タイマーのみ表示）の切替
+    function toggleFocusMode() {
+        const isFocus = document.body.classList.toggle("focus-mode");
+        const btn = document.getElementById("focus-toggle-btn");
+        if (isFocus) {
+            btn.textContent = "🔙 元の画面に戻る";
+        } else {
+            btn.textContent = "📺 タイマーのみ表示";
+        }
+    }
+
+
+        const radius = 110;
+    const circleLength = 2 * Math.PI * radius;
+    const progress = document.getElementById("progress");
+    const dateEl = document.getElementById("date");
+    const clockEl = document.getElementById("clock");
+    const statusEl = document.getElementById("status");
+    const remainEl = document.getElementById("remain");
+    const afterSchoolCard = document.getElementById("after-school-msg");
+    const afterSchoolText = document.getElementById("after-school-text");
+
+    if (progress) {
+        progress.style.strokeDasharray = circleLength;
+        progress.style.strokeDashoffset = circleLength;
+    }
+
+    function sec(t) {
+        let [h, m] = t.split(":").map(Number);
+        return h * 3600 + m * 60;
+    }
+
+    function formatDateLocal(dateObj) {
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const d = String(dateObj.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+    }
+
+    // 夏休み期間判定 (毎年 7月18日 〜 8月23日)
+    function checkIsSummerVacation(now) {
+        const m = now.getMonth() + 1; // 1-12
+        const d = now.getDate();
+        
+        if (m === 7 && d >= 18) return true;
+        if (m === 8 && d <= 23) return true;
+        return false;
+    }
+
+    function updateSummerModeUI(now) {
+        const summerEnd = new Date(now.getFullYear(), 7, 23, 23, 59, 59); // 8月23日
+        const diffMs = summerEnd - now;
+        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+        const countdownEl = document.getElementById("summer-countdown");
+        if (countdownEl) {
+            if (diffDays > 0) {
+                countdownEl.textContent = `夏休み最終日まで あと ${diffDays} 日！`;
+            } else if (diffDays === 0) {
+                countdownEl.textContent = `本日が夏休み最終日です！🎉`;
+            } else {
+                countdownEl.textContent = `明日（8月24日）から新学期スタート！`;
+            }
+        }
+
+        // 日替わりニュース表示 (日付シードで日替わりピックアップ)
+        const newsBox = document.getElementById("summer-news-box");
+        if (newsBox) {
+            const daySeed = now.getDate() + now.getMonth();
+            const news1 = dailyNewsDb[daySeed % dailyNewsDb.length];
+            const news2 = dailyNewsDb[(daySeed + 2) % dailyNewsDb.length];
+
+            newsBox.innerHTML = `
+                <div class="news-card">
+                    <span class="news-tag">${news1.tag}</span>
+                    <div class="news-headline">${news1.headline}</div>
+                    <div class="news-detail">${news1.detail}</div>
+                </div>
+                <div class="news-card">
+                    <span class="news-tag">${news2.tag}</span>
+                    <div class="news-headline">${news2.headline}</div>
+                    <div class="news-detail">${news2.detail}</div>
+                </div>
+            `;
+        }
+    }
+
+    // =========================
+    // 🔔 授業・みらかけ通知
+    // =========================
+    let notificationData = [];
+    let notificationDate = formatDateLocal(new Date());
+    const notifiedEvents = new Set();
+
+    function enableNotifications() {
+        if (!("Notification" in window)) {
+            alert("このブラウザは通知機能に対応していません。");
+            return;
+        }
+
+        Notification.requestPermission().then(permission => {
+            updateNotificationUI(permission);
+            if (permission === "granted") {
+                showNotification("通知をONにしました", "授業・みらかけの開始／終了時に通知します。");
+            }
+        });
+    }
+
+    function updateNotificationUI(permission) {
+        const btn = document.getElementById("notification-btn");
+        const status = document.getElementById("notification-status");
+        if (!btn || !status) return;
+
+        if (permission === "granted") {
+            btn.textContent = "🔔 通知ON";
+            status.textContent = "授業・みらかけ通知 有効";
+            status.style.color = "var(--green)";
+        } else if (permission === "denied") {
+            btn.textContent = "🔕 通知がブロックされています";
+            status.textContent = "ブラウザ設定から許可してください";
+            status.style.color = "var(--red)";
+        } else {
+            btn.textContent = "🔔 通知をONにする";
+            status.textContent = "通知OFF";
+        }
+    }
+
+    function showNotification(title, body) {
+        if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+        try {
+            const n = new Notification(title, {
+                body: body,
+                icon: "https://scdn.line-apps.com/n/line_add_friends/btn/ja.png",
+                tag: "class-timer-" + Date.now()
+            });
+            setTimeout(() => n.close(), 10000);
+        } catch (e) {
+            console.warn("通知の表示に失敗:", e);
+        }
+    }
+
+    function getKeywordForLesson(index) {
+        const lessonNumber = `${index + 1}限目`;
+        const today = formatDateLocal(new Date());
+        const item = notificationData.find(x =>
+            parseItemDate(x["日付"]) === today &&
+            x["キーワードの種類"] === "授業" &&
+            x["時間"] === lessonNumber
+        );
+        return item ? (item["授業キーワード"] || "キーワード未登録") : "キーワード未登録";
+    }
+
+    function getMirakakeItemsForToday() {
+        const today = formatDateLocal(new Date());
+        return mirakakeSchedule[today] || [];
+    }
+
+    function checkEventNotifications(now) {
+        if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+        const today = formatDateLocal(now);
+        if (today !== notificationDate) {
+            notificationDate = today;
+            notifiedEvents.clear();
+        }
+
+        const currentSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+
+        // 授業の開始・終了
+        schedule.forEach((lesson, i) => {
+            const start = sec(lesson.start);
+            const end = sec(lesson.end);
+            const keyword = getKeywordForLesson(i);
+
+            if (currentSec >= start && currentSec < start + 2) {
+                const key = `${today}-class-${i}-start`;
+                if (!notifiedEvents.has(key)) {
+                    notifiedEvents.add(key);
+                    showNotification(
+                        `📚 ${lesson.name}が開始しました`,
+                        `授業開始：${lesson.name}\nキーワード：${keyword}`
+                    );
+                }
+            }
+
+            if (currentSec >= end && currentSec < end + 2) {
+                const key = `${today}-class-${i}-end`;
+                if (!notifiedEvents.has(key)) {
+                    notifiedEvents.add(key);
+                    showNotification(
+                        `🔔 ${lesson.name}が終了しました`,
+                        `授業終了：${lesson.name}\nキーワード：${keyword}`
+                    );
+                }
+            }
+        });
+
+        // みらかけ（12:50〜14:20）
+        const mirakakeStart = sec("12:50");
+        const mirakakeEnd = sec("14:20");
+        const items = getMirakakeItemsForToday();
+        const names = items.length
+            ? items.map(x => `${x.name}（${x.room}）`).join("、")
+            : "本日の予定なし";
+
+        if (currentSec >= mirakakeStart && currentSec < mirakakeStart + 2) {
+            const key = `${today}-mirakake-start`;
+            if (!notifiedEvents.has(key)) {
+                notifiedEvents.add(key);
+                showNotification(
+                    "🎨 みらかけが開始しました",
+                    `みらいの架け橋レッスン開始\nキーワード：${names}`
+                );
+            }
+        }
+
+        if (currentSec >= mirakakeEnd && currentSec < mirakakeEnd + 2) {
+            const key = `${today}-mirakake-end`;
+            if (!notifiedEvents.has(key)) {
+                notifiedEvents.add(key);
+                showNotification(
+                    "🎨 みらかけが終了しました",
+                    `みらいの架け橋レッスン終了\nキーワード：${names}`
+                );
+            }
+        }
+    }
+
+    let lastTimerKeyword = "";
+    let keywordLoadState = "loading";
+
+    function setTimerKeywordLoadingState(state) {
+        const valueEl = document.getElementById("timer-keyword");
+        const metaEl = document.getElementById("timer-keyword-meta");
+        if (!valueEl || !metaEl) return;
+        if (state === "loading") {
+            valueEl.innerHTML = 'キーワード読み込み中<span class="timer-keyword-loading-dots"><span></span><span></span><span></span></span>';
+            metaEl.textContent = "キーワードデータを取得しています";
+        } else if (state === "error") {
+            valueEl.textContent = "キーワード読み込みエラー";
+            metaEl.textContent = "キーワードを読み込めませんでした";
+        }
+    }
+
+    function updateTimerKeyword(nowSec) {
+        const valueEl = document.getElementById("timer-keyword");
+        const metaEl = document.getElementById("timer-keyword-meta");
+        const panel = document.getElementById("timer-panel");
+        if (!valueEl || !metaEl) return;
+        if (keywordLoadState === "loading") {
+            setTimerKeywordLoadingState("loading");
+            return;
+        }
+        if (keywordLoadState === "error") {
+            setTimerKeywordLoadingState("error");
+            return;
+        }
+        let keyword = "本日の授業なし";
+        let meta = "授業キーワード";
+        const lesson = schedule.find((x) => nowSec >= sec(x.start) && nowSec < sec(x.end));
+        if (lesson) {
+            const index = schedule.indexOf(lesson);
+            keyword = getKeywordForLesson(index);
+            meta = `${lesson.name} ・ ${lesson.start}〜${lesson.end}`;
+        } else {
+            const next = schedule.find((x) => nowSec < sec(x.start));
+            if (next) {
+                keyword = getKeywordForLesson(schedule.indexOf(next));
+                meta = `${next.name} ・ ${next.start}開始予定`;
+            } else if (nowSec >= sec("12:50") && nowSec < sec("14:20")) {
+                const items = getMirakakeItemsForToday();
+                keyword = items.length ? items.map(x => x.name).join(" / ") : "みらかけ予定なし";
+                meta = "みらかけ 12:50〜14:20";
+            } else if (nowSec >= sec("12:10") && nowSec < sec("12:50")) {
+                keyword = "お昼休み";
+                meta = "12:50 みらかけ開始";
+            } else {
+                meta = "授業時間外";
+            }
+        }
+        valueEl.textContent = keyword || "未登録";
+        metaEl.textContent = meta;
+        if (keyword !== lastTimerKeyword) {
+            lastTimerKeyword = keyword;
+            if (panel) {
+                panel.classList.remove("keyword-change");
+                void panel.offsetWidth;
+                panel.classList.add("keyword-change");
+            }
+        }
+    }
+
+    function tick() {
+        const now = new Date();
+        checkEventNotifications(now);
+        const dayOfWeek = now.getDay();
+        dateEl.textContent = now.toLocaleDateString("ja-JP", { dateStyle: "full" });
+        clockEl.textContent = now.toLocaleTimeString("ja-JP");
+
+        const isSummer = checkIsSummerVacation(now);
+
+        if (isSummer) {
+            document.body.classList.add("summer-vacation-mode");
+            updateSummerModeUI(now);
+            return; // 夏休みモード時は通常のタイマーロジックをスキップ
+        } else {
+            document.body.classList.remove("summer-vacation-mode");
+        }
+
+        const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+        updateTimerKeyword(nowSec);
+
+        let msg = "🎉 今日の授業はすべて終了しました"; let rem = "お疲れ様でした！";
+        let percent = 100; let left = 99999; let isBreak = false; let isFinished = false; let isSleepTime = false;
+
+        if (nowSec >= 21 * 3600 || nowSec < 5 * 3600) isSleepTime = true;
+
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+            msg = "🍵 休日のため授業はありません"; rem = "素敵な週末を！"; isFinished = true;
+        } else {
+            const lastLessonEnd = sec(schedule[schedule.length - 1].end);
+            if (nowSec >= lastLessonEnd) {
+                isFinished = true;
+                if (nowSec < 12 * 3600 + 50 * 60) {
+                    const diffSec = (12 * 3600 + 50 * 60) - nowSec;
+                    msg = "⚡️ 放課後 / お昼休み"; rem = `みらかけ開始まで ${Math.floor(diffSec / 60)}分 ${diffSec % 60}秒`;
+                } else if (nowSec < 14 * 3600 + 20 * 60) {
+                    msg = "✨ みらいの架け橋レッスン実施中"; rem = "14:20 終了予定";
+                } else if (nowSec < 18 * 3600) {
+                    msg = "🌅 放課後 / 下校時間"; rem = "帰り道、気をつけてね！";
+                } else if (!isSleepTime) {
+                    msg = "🌌 今日も一日お疲れ様でした！"; rem = "しっかり体を休めましょう";
+                }
+            } else {
+                for (let i = 0; i < schedule.length; i++) {
+                    const current = schedule[i]; const start = sec(current.start); const end = sec(current.end);
+                    if (nowSec < start) {
+                        if (i > 0 && nowSec >= sec(schedule[i - 1].end)) {
+                            const breakStart = sec(schedule[i - 1].end); left = start - nowSec;
+                            msg = `☕️ 休み時間 (${schedule[i - 1].name} ➔ ${current.name})`;
+                            rem = `次まで ${Math.floor(left / 60)}分 ${String(left % 60).padStart(2, "0")}秒`;
+                            percent = ((nowSec - breakStart) / (start - breakStart)) * 100; isBreak = true;
+                        } else {
+                            left = start - nowSec; msg = `🕒 スタンドバイ: ${current.name}`;
+                            rem = `開始まで ${Math.floor(left / 60)}分 ${left % 60}秒`; percent = 0;
+                        }
+                        break;
+                    }
+                    if (nowSec >= start && nowSec < end) {
+                        left = end - nowSec; msg = `⚡️ ${current.name} 進行中`;
+                        rem = `残り ${Math.floor(left / 60)}分 ${left % 60}秒`; percent = ((nowSec - start) / (end - start)) * 100;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (isSleepTime) {
+            msg = "💤 夜更かしはサイバーウェアに毒だぞ！"; rem = "はよ寝ろ！明日に響くぞ！😴";
+            if (progress) progress.style.stroke = "url(#color-sleep)";
+        } else if (isFinished) { if (progress) progress.style.stroke = "url(#color-finished)"; }
+        else if (isBreak) { if (progress) progress.style.stroke = "url(#color-break)"; }
+        else { if (progress) progress.style.stroke = "url(#color-class)"; }
+
+        statusEl.textContent = msg; remainEl.textContent = rem;
+        if (progress) progress.style.strokeDashoffset = Math.max(0, Math.min(circleLength, circleLength - (circleLength * percent / 100)));
+
+        const mirakakeSection = document.getElementById("mirakake-today-section");
+        if (nowSec >= sec("12:10") && nowSec < sec("14:20") && dayOfWeek !== 0 && dayOfWeek !== 6) {
+            if (afterSchoolCard) { afterSchoolCard.classList.add("active"); afterSchoolText.textContent = "通常授業お疲れ様でした！この後はみらかけを楽しみましょう！✨"; }
+        } else { if (afterSchoolCard) afterSchoolCard.classList.remove("active"); }
+
+        if (mirakakeSection) {
+            if (nowSec >= sec("14:20") || dayOfWeek === 0 || dayOfWeek === 6) mirakakeSection.classList.add("hidden-section");
+            else mirakakeSection.classList.remove("hidden-section");
+        }
+    }
+
+
+    function parseItemDate(dateInput) {
+        if (!dateInput) return "";
+        let d = new Date(dateInput);
+        if (isNaN(d.getTime())) d = new Date(String(dateInput).replace(/\//g, '-'));
+        return isNaN(d.getTime()) ? "" : formatDateLocal(d);
+    }
+
+
+
+    // =========================
+    // 📚 ページ分割・時間割
+    // =========================
+    // =========================
+    // 📚 日付別・時間割
+    // =========================
+    
+    
+    
+
+    function updateMainNavArrows() {
+        const nav = document.getElementById("main-nav");
+        const shell = document.getElementById("main-nav-shell");
+        if (!nav || !shell) return;
+        const max = Math.max(0, nav.scrollWidth - nav.clientWidth);
+        const left = nav.scrollLeft > 4;
+        const right = nav.scrollLeft < max - 4;
+        shell.classList.toggle("has-left", left);
+        shell.classList.toggle("has-right", right);
+    }
+
+    function scrollMainNav(direction) {
+        const nav = document.getElementById("main-nav");
+        if (!nav) return;
+        nav.scrollBy({ left: direction * Math.max(180, nav.clientWidth * 0.72), behavior: "smooth" });
+        setTimeout(updateMainNavArrows, 260);
+    }
+
+    function initMainNavScroll() {
+        const nav = document.getElementById("main-nav");
+        if (!nav) return;
+        nav.addEventListener("scroll", updateMainNavArrows, { passive: true });
+        window.addEventListener("resize", updateMainNavArrows);
+        updateMainNavArrows();
+    }
+
+    function showPage(pageName) {
+        document.querySelectorAll(".app-page").forEach(p => p.classList.remove("active"));
+        document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+
+        const normalContent = document.getElementById("normal-content-group");
+
+        if (pageName === "home") {
+            // ホームだけタイマー・今日の情報を表示
+            if (normalContent) normalContent.style.display = "";
+            const btn = document.querySelector('.nav-btn[data-page="home"]');
+            if (btn) btn.classList.add("active");
+        } else {
+            // 各ページではホーム用タイマーを完全に非表示
+            if (normalContent) normalContent.style.display = "none";
+            const page = document.getElementById("page-" + pageName);
+            const btn = document.querySelector('.nav-btn[data-page="' + pageName + '"]');
+            if (page) page.classList.add("active");
+            if (btn) btn.classList.add("active");
+        }
+        // Home-only content is visible only on Home.
+        const homeSections = [
+            "today-keywords-section",
+            "mirakake-today-section",
+            "after-school-msg"
+        ];
+        homeSections.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = pageName === "home" ? "" : "none";
+        });
+
+        if (pageName === "timetable") {
+            initTimetableDates();
+        }
+        if (pageName === "mirakake") {
+            showMirakakeView("weekday");
+        }
+        if (pageName === "search") {
+            renderGlobalSearch();
+            setTimeout(() => document.getElementById("global-search-input")?.focus(), 50);
+        }
+    }
+
+    function getTimetableDayName(dateObj) {
+        return ["日","月","火","水","木","金","土"][dateObj.getDay()];
+    }
+
+    let currentTimetableDate = "";
+
+    function formatTimetableDate(dateKey) {
+        const parts = dateKey.split("-");
+        return `${Number(parts[1])}/${Number(parts[2])}（${getTimetableDayName(new Date(dateKey + "T00:00:00"))}）`;
+    }
+
+    function initTimetableDates() {
+        const picker = document.getElementById("timetable-date-picker");
+        const dates = Object.keys(dateTimetable).sort();
+        if (!picker || !dates.length) return;
+        const today = formatDateLocal(new Date());
+        picker.min = dates[0];
+        picker.max = dates[dates.length - 1];
+        const defaultDate = dateTimetable[today] ? today : (currentTimetableDate || dates[0]);
+        picker.value = defaultDate;
+        currentTimetableDate = defaultDate;
+        renderNextReport();
+        renderTimetableRange();
+    }
+
+    function getTimetableRangeDates(anchorDate, range) {
+        const dates = Object.keys(dateTimetable).sort();
+        if (!dates.length) return [];
+        if (range === "all") return dates;
+
+        const anchor = new Date(anchorDate + "T00:00:00");
+        if (Number.isNaN(anchor.getTime())) return dates.slice(0, 1);
+
+        if (range === "month") {
+            const y = anchor.getFullYear();
+            const m = anchor.getMonth();
+            return dates.filter(d => {
+                const x = new Date(d + "T00:00:00");
+                return x.getFullYear() === y && x.getMonth() === m;
+            });
+        }
+
+        if (range === "week") {
+            const day = anchor.getDay();
+            const mondayOffset = day === 0 ? -6 : 1 - day;
+            const monday = new Date(anchor);
+            monday.setDate(anchor.getDate() + mondayOffset);
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            return dates.filter(d => {
+                const x = new Date(d + "T00:00:00");
+                return x >= monday && x <= sunday;
+            });
+        }
+
+        return dateTimetable[anchorDate] ? [anchorDate] : [];
+    }
+
+    function handleTimetableDateChange(dateKey) {
+        currentTimetableDate = dateKey || "";
+        renderTimetableRange();
+    }
+
+    function showTimetableDate(dateKey) {
+        currentTimetableDate = dateKey;
+        const picker = document.getElementById("timetable-date-picker");
+        if (picker) picker.value = dateKey || "";
+        const range = document.getElementById("timetable-range-filter");
+        if (range) range.value = "day";
+        renderTimetableRange();
+    }
+
+    function selectTimetableToday() {
+        const today = formatDateLocal(new Date());
+        const picker = document.getElementById("timetable-date-picker");
+        if (picker) picker.value = today;
+        currentTimetableDate = today;
+        renderTimetableRange();
+    }
+
+    function showTimetableDay(day) {
+        const dates = Object.keys(dateTimetable).sort();
+        const found = dates.find(d => getTimetableDayName(new Date(d + "T00:00:00")) === day);
+        if (found) showTimetableDate(found);
+    }
+
+    function applyTimetableFilter() {
+        renderTimetableRange();
+    }
+
+    function resetTimetableFilter() {
+        const y = document.getElementById("timetable-year-filter");
+        const q = document.getElementById("timetable-subject-filter");
+        const r = document.getElementById("timetable-report-filter");
+        const range = document.getElementById("timetable-range-filter");
+        if (y) y.value = "all";
+        if (q) q.value = "";
+        if (r) r.value = "all";
+        if (range) range.value = "day";
+        if (!currentTimetableDate) currentTimetableDate = formatDateLocal(new Date());
+        const picker = document.getElementById("timetable-date-picker");
+        if (picker) picker.value = currentTimetableDate;
+        renderTimetableRange();
+    }
+
+    function updateTimetableRangeLabels() {
+        const rangeSelect = document.getElementById("timetable-range-filter");
+        if (!rangeSelect) return;
+        const monthOption = rangeSelect.querySelector('option[value="month"]');
+        if (monthOption) {
+            const date = currentTimetableDate || formatDateLocal(new Date());
+            const parts = date.split("-");
+            monthOption.textContent = parts.length >= 2 ? `${Number(parts[1])}月全体` : "月全体";
+        }
+    }
+
+    function renderTimetableRange() {
+        const box = document.getElementById("timetable-page-content");
+        const picker = document.getElementById("timetable-date-picker");
+        const range = document.getElementById("timetable-range-filter")?.value || "day";
+        if (!box) return;
+
+        const dates = Object.keys(dateTimetable).sort();
+        if (!dates.length) {
+            box.innerHTML = `<div class="filter-empty">時間割データがありません。</div>`;
+            return;
+        }
+
+        if (!currentTimetableDate || !dateTimetable[currentTimetableDate]) {
+            const today = formatDateLocal(new Date());
+            currentTimetableDate = dateTimetable[today] ? today : dates[0];
+            if (picker) picker.value = currentTimetableDate;
+        }
+
+        updateTimetableRangeLabels();
+        const targetDates = getTimetableRangeDates(currentTimetableDate, range);
+        if (!targetDates.length) {
+            const label = range === "all" ? "全体" : formatTimetableDate(currentTimetableDate);
+            box.innerHTML = `<div class="filter-empty">📅 ${label}の時間割は登録されていません。</div>`;
+            return;
+        }
+
+        const cards = targetDates.map(date => {
+            const data = dateTimetable[date];
+            const isToday = date === formatDateLocal(new Date());
+            const grid = timetableGridHTML(data);
+            if (grid.includes("該当する時間割がありません")) return "";
+            return `<div class="timetable-range-day">
+                <div class="timetable-day-label">📅 ${formatTimetableDate(date)}${isToday ? "・今日" : ""}</div>
+                ${grid}
+            </div>`;
+        }).filter(Boolean).join("");
+
+        box.innerHTML = cards || `<div class="filter-empty">🔎 絞り込み条件に一致する時間割がありません。</div>`;
+    }
+
+    function getReportEntries() {
+        const entries = [];
+        Object.keys(dateTimetable).sort().forEach(date => {
+            const data = dateTimetable[date];
+            ["1年次","2年次","3年次"].forEach(year => {
+                (data[year] || []).forEach((subject, i) => {
+                    if (String(subject).includes("レポート")) entries.push({date, year, period:i+1, subject});
+                });
+            });
+        });
+        return entries;
+    }
+
+    function renderNextReport() {
+        const box = document.getElementById("report-next-card");
+        if (!box) return;
+        const entries = getReportEntries();
+        if (!entries.length) {
+            box.innerHTML = `<div class="report-next-title">📄 レポート</div><div class="report-next-items">登録されているレポートはありません。</div>`;
+            return;
+        }
+        const today = formatDateLocal(new Date());
+        let nextDate = entries.find(x => x.date >= today)?.date;
+        if (!nextDate) nextDate = entries[entries.length - 1].date;
+        const same = entries.filter(x => x.date === nextDate);
+        const label = nextDate === today ? "今日" : (nextDate > today ? "次回" : "直近");
+        box.innerHTML = `<div class="report-next-title">📄 直近のレポート</div><div class="report-next-date">${label}：${formatTimetableDate(nextDate)}</div><div class="report-next-items">${same.map(x => `${x.year}・${x.period}限目：${x.subject}`).join("<br>")}</div>`;
+    }
+
+    function timetableGridHTML(timetable) {
+        const yearFilter = document.getElementById("timetable-year-filter")?.value || "all";
+        const search = (document.getElementById("timetable-subject-filter")?.value || "").trim().toLowerCase();
+        const reportFilter = document.getElementById("timetable-report-filter")?.value || "all";
+        const cards = ["1年次","2年次","3年次"].filter(y => yearFilter === "all" || y === yearFilter).map(year => {
+            const periods = (timetable[year] || []).map((subject,i) => ({subject,i}))
+                .filter(x => reportFilter !== "report" || String(x.subject).includes("レポート"))
+                .filter(x => !search || String(x.subject).toLowerCase().includes(search));
+            if (!periods.length) return "";
+            return `<div class="timetable-year"><div class="timetable-year-title">${year}</div>${periods.map(({subject,i}) => `<div class="timetable-period"><div class="timetable-period-time">${i+1}限目　${timetableTimes[i]}</div><div class="timetable-period-name">${subject}</div></div>`).join("")}</div>`;
+        }).join("");
+        return cards ? `<div class="timetable-grid">${cards}</div>` : `<div class="filter-empty">該当する時間割がありません</div>`;
+    }
+
+    function escapeSearchText(value) { return String(value ?? "").replace(/[&<>\'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"}[c])); }
+
+    function renderGlobalSearch() {
+        const input = document.getElementById("global-search-input"), box = document.getElementById("global-search-results");
+        if (!input || !box) return;
+        const q = input.value.trim().toLowerCase();
+        if (!q) { box.innerHTML = `<div class="filter-empty">検索したい文字を入力してください。</div>`; return; }
+        const results = [];
+        Object.keys(dateTimetable).sort().forEach(date => {
+            const data = dateTimetable[date];
+            ["1年次","2年次","3年次"].forEach(year => (data[year] || []).forEach((subject,i) => {
+                const raw = `${date} ${formatTimetableDate(date)} ${year} ${i+1}限目 ${subject}`.toLowerCase();
+                if (raw.includes(q)) results.push({type:"📚 時間割", title:`${formatTimetableDate(date)}・${year}・${i+1}限目`, body:subject});
+            }));
+        });
+        keywordData.forEach(item => {
+            const raw = Object.values(item || {}).filter(Boolean).join(" ");
+            if (raw.toLowerCase().includes(q)) results.push({type:"🔑 キーワード", title:String(item["日付"] || "日付不明") + (item["時間"] ? `・${item["時間"]}` : ""), body:String(item["授業キーワード"] || item["登校キーワード"] || item["下校キーワード"] || "")});
+        });
+        Object.keys(mirakakeSchedule).sort().forEach(date => (mirakakeSchedule[date] || []).forEach(x => {
+            const raw = `${date} ${x.name || ""} ${x.room || ""}`.toLowerCase();
+            if (raw.includes(q)) results.push({type:"🎨 みらかけ", title:date.replace(/-/g,"/"), body:`${x.name || ""}${x.room ? `（${x.room}）` : ""}`});
+        }));
+        const limited = results.slice(0,100);
+        box.innerHTML = limited.length ? limited.map(r => `<div class="global-search-result"><div class="global-search-result-title">${escapeSearchText(r.type)}　${escapeSearchText(r.title)}</div><div class="global-search-result-body">${escapeSearchText(r.body)}</div></div>`).join("") : `<div class="filter-empty">「${escapeSearchText(input.value)}」に一致するものはありません。</div>`;
+    }
+
+    let mirakakeFilters={room:"all",search:""};
+    function getMirakakeFilteredData(){const out={},room=mirakakeFilters.room,search=mirakakeFilters.search.toLowerCase();Object.keys(mirakakeSchedule).sort().forEach(d=>{const items=mirakakeSchedule[d].filter(x=>(room==="all"||x.room===room)&&(!search||x.name.toLowerCase().includes(search)||d.includes(search)||d.replace(/-/g,"/").includes(search)));if(items.length)out[d]=items});return out;}
+    function showMirakakeView(view){const w=document.getElementById("mirakake-weekday-view"),c=document.getElementById("mirakake-content-view"),wb=document.getElementById("mirakake-view-weekday-btn"),cb=document.getElementById("mirakake-view-content-btn");if(!w||!c)return;const iw=view!=="content";w.style.display=iw?"":"none";c.style.display=iw?"none":"";if(wb)wb.classList.toggle("active",iw);if(cb)cb.classList.toggle("active",!iw);if(iw)renderMirakakeWeekdayView();else renderMirakakeContentView();}
+    function scrollMirakakeToToday(target){if(!target)return;requestAnimationFrame(()=>{requestAnimationFrame(()=>{const today=target.querySelector('[data-mirakake-today="true"]');if(!today)return;if(target.scrollHeight<=target.clientHeight)return;const targetRect=target.getBoundingClientRect();const todayRect=today.getBoundingClientRect();const top=target.scrollTop+(todayRect.top-targetRect.top);target.scrollTo({top:Math.max(0,Math.min(top,target.scrollHeight-target.clientHeight)),behavior:"auto"});});});}
+    function renderMirakakeWeekdayView(){const target=document.getElementById("mirakake-weekday-view");if(!target)return;const data=getMirakakeFilteredData(),todayStr=formatDateLocal(new Date());let html="";Object.keys(data).forEach(d=>{html+=`<div class="mirakake-weekday-card" ${d===todayStr?'data-mirakake-today="true"':''}><div class="mirakake-weekday-title">📅 ${d.replace(/-/g,"/")}${d===todayStr?" ⭐️本日":""}</div>`;data[d].forEach(x=>{html+=`<div class="mirakake-date-row"><span>${x.name}</span><span>🚪 ${x.room}</span></div>`});html+=`</div>`});target.innerHTML=html||`<div class="filter-empty">該当するみらかけ日程がありません</div>`;scrollMirakakeToToday(target);}
+    function renderMirakakeContentView(){const target=document.getElementById("mirakake-content-view");if(!target)return;const data=getMirakakeFilteredData(),grouped={};Object.keys(data).forEach(d=>data[d].forEach(x=>(grouped[x.name]??=[]).push({date:d,room:x.room,today:d===formatDateLocal(new Date())})));let html="";Object.keys(grouped).sort((a,b)=>a.localeCompare(b,"ja")).forEach(name=>{html+=`<div class="mirakake-content-card"><div class="mirakake-content-title">🎨 ${name}</div>`;grouped[name].forEach(x=>html+=`<div class="mirakake-date-row"><span class="${x.today?"mirakake-today-mark":""}" ${x.today?'data-mirakake-today="true"':''}>${x.date.replace(/-/g,"/")}${x.today?" ⭐️本日":""}</span><span>🚪 ${x.room}</span></div>`);html+=`</div>`});target.innerHTML=html||`<div class="filter-empty">該当するみらかけ日程がありません</div>`;scrollMirakakeToToday(target);}
+    function applyMirakakeFilter(){mirakakeFilters.room=document.getElementById("mirakake-room-filter")?.value||"all";mirakakeFilters.search=document.getElementById("mirakake-search-filter")?.value||"";renderMirakakeWeekdayView();renderMirakakeContentView();}
+    function resetMirakakeFilter(){const r=document.getElementById("mirakake-room-filter"),q=document.getElementById("mirakake-search-filter");if(r)r.value="all";if(q)q.value="";mirakakeFilters={room:"all",search:""};renderMirakakeWeekdayView();renderMirakakeContentView();}
+    function loadMirakake(){const todayStr=formatDateLocal(new Date()),todayBox=document.getElementById("mirakake-today");let h="";if(mirakakeSchedule[todayStr])mirakakeSchedule[todayStr].forEach(x=>h+=`<div class="keyword" style="border-color:var(--purple);"><div class="keyword-header"><span class="badge mirakake">🎨 みらかけ</span></div><div class="keyword-body">${x.name}</div><div style="font-size:10px;color:var(--text-muted)">部屋: ${x.room}</div></div>`);else h=`<div class="keyword" style="grid-column:1/-1;text-align:center;color:var(--text-muted);font-size:11px;">本日の予定はありません</div>`;if(todayBox)todayBox.innerHTML=h;renderMirakakeWeekdayView();renderMirakakeContentView();showMirakakeView("weekday");}
+
+    let keywordData=[];
+    async function loadKeywords() {
+        const todayBox = document.getElementById("today");
+        const historyBox = document.getElementById("history");
+        let data = [];
+        const loadingBox=document.getElementById("keyword-loading");
+        const homeLoadingBox=document.getElementById("keyword-home-loading");
+
+        keywordLoadState = "loading";
+        if(loadingBox) loadingBox.style.display="flex";
+        if(homeLoadingBox) homeLoadingBox.style.display="flex";
+        if(todayBox) todayBox.style.display="none";
+        if(historyBox) historyBox.style.display="none";
+
+        try {
+            const res = await fetch(GAS_URL);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            data = await res.json();
+            if (!Array.isArray(data)) throw new Error("キーワードデータの形式が不正です");
+
+            notificationData = data;
+            keywordData = data;
+            keywordLoadState = "success";
+
+            const todayStr = formatDateLocal(new Date());
+            const groups = {};
+            data.forEach(item => {
+                const dStr = parseItemDate(item["日付"]);
+                if (dStr) { if (!groups[dStr]) groups[dStr] = []; groups[dStr].push(item); }
+            });
+
+            const orderMap = { "登校": 1, "1限目": 2, "2限目": 3, "3限目": 4, "下校": 5 };
+            function getSortOrder(item) {
+                if (item["キーワードの種類"] === "登下校") return orderMap[item["登下校"]] || 99;
+                if (item["キーワードの種類"] === "授業") return orderMap[item["時間"]] || 99;
+                return 99;
+            }
+
+            let todayHTML = "";
+            if (groups[todayStr]) {
+                groups[todayStr].sort((a, b) => getSortOrder(a) - getSortOrder(b));
+                groups[todayStr].forEach(item => { todayHTML += createCard(item); });
+            } else {
+                todayHTML = `<div class="keyword" style="grid-column:1/-1; text-align:center; color:var(--text-muted); font-size:11px;">本日のキーワードは未登録です</div>`;
+            }
+            if (todayBox) todayBox.innerHTML = todayHTML;
+
+            renderKeywordHistory();
+        } catch (e) {
+            keywordLoadState = "error";
+            notificationData = [];
+            keywordData = [];
+
+            const errorHTML = `<div class="keyword" style="grid-column:1/-1; text-align:center; color:var(--red); font-size:11px;">⚠️ キーワードを読み込めませんでした</div>`;
+            if (todayBox) todayBox.innerHTML = errorHTML;
+            if (historyBox) historyBox.innerHTML = `<div class="filter-empty" style="color:var(--red);">⚠️ キーワードを読み込めませんでした</div>`;
+        }
+
+        if(loadingBox) loadingBox.style.display="none";
+        if(homeLoadingBox) homeLoadingBox.style.display="none";
+        if(todayBox) todayBox.style.display="grid";
+        if(historyBox) historyBox.style.display="flex";
+
+        // タイマーにも読み込み結果を即時反映
+        const now = new Date();
+        updateTimerKeyword(now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds());
+    }
+
+    function renderKeywordHistory(){
+        const historyBox=document.getElementById("history");if(!historyBox)return;const todayStr=formatDateLocal(new Date()),type=document.getElementById("keyword-type-filter")?.value||"all",search=(document.getElementById("keyword-search-filter")?.value||"").trim().toLowerCase();const groups={};
+        keywordData.forEach(item=>{const d=parseItemDate(item["日付"]);if(!d||d===todayStr)return;const kind=item["キーワードの種類"]==="登下校"?(item["登下校"]||""):"授業";const raw=[item["日付"],item["時間"],item["授業キーワード"],item["登下校"],item["登校キーワード"],item["下校キーワード"]].filter(Boolean).join(" ").toLowerCase();if((type==="all"||kind===type)&&(!search||raw.includes(search))){(groups[d]??=[]).push(item)}});
+        const order={"登校":1,"1限目":2,"2限目":3,"3限目":4,"下校":5};const getOrder=x=>x["キーワードの種類"]==="登下校"?(order[x["登下校"]]||99):(order[x["時間"]]||99);let html="";Object.keys(groups).sort().reverse().slice(0,10).forEach(d=>{html+=`<div><div class="history-day-title">📅 ${d.replace(/-/g,"/")}</div><div class="box" style="margin-top:6px;">`;groups[d].sort((a,b)=>getOrder(a)-getOrder(b)).forEach(x=>html+=createCard(x));html+=`</div></div>`});historyBox.innerHTML=html||`<div class="filter-empty">条件に一致するキーワード履歴がありません</div>`;
+    }
+    function resetKeywordFilter(){const t=document.getElementById("keyword-type-filter"),q=document.getElementById("keyword-search-filter");if(t)t.value="all";if(q)q.value="";renderKeywordHistory();}
+
+    function createCard(item) {
+        let label = "その他"; let typeClass = "class"; let icon = "📝"; let rawText = "";
+        if (item["キーワードの種類"] === "登下校") {
+            if (item["登下校"] === "登校") { icon = "🏫"; label = "登校"; typeClass = "in"; rawText = item["登校キーワード"]; }
+            else { icon = "🏠"; label = "下校"; typeClass = "out"; rawText = item["下校キーワード"]; }
+        } else {
+            icon = "📚"; label = item["時間"] || "授業"; typeClass = "class"; rawText = item["授業キーワード"];
+        }
+        return `<div class="keyword"><div class="keyword-header"><span class="badge ${typeClass}">${icon} ${label}</span></div><div class="keyword-body">${rawText || '<span class="empty-key">未登録</span>'}</div></div>`;
+    }
+
+    if ("Notification" in window) updateNotificationUI(Notification.permission);
+    tick(); loadKeywords(); loadMirakake(); showPage("home");
+    setInterval(tick, 1000); setInterval(loadKeywords, 45000); setInterval(touchLastSeen, 60000);
+    initMainNavScroll();
+</script>
+</body>
+</html>
