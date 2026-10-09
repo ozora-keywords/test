@@ -6,7 +6,7 @@ const mirakakeSchedule = {
         "2026-10-06": [{name:"イラスト",room:"9A"},{name:"謎解き",room:"9B"},{name:"スポーツ",room:"9C"}],
         "2026-10-07": [{name:"企画",room:"9A"},{name:"心理学",room:"9B"},{name:"ミュージック",room:"9C"},{name:"BC講座・オープンレッスン",room:"6F"}],
         "2026-10-08": [{name:"書道",room:"9A"},{name:"ネイル",room:"9B"},{name:"ダンス",room:"9C"},{name:"検定",room:"6F"}],
-        "2026-10-09": [{name:"ボードゲーム",room:"9A"},{name:"クラフト",room:"9B"},{name:"オープンレッスン",room:"6F"}],
+        "2026-10-09": [{name:"テスト",room:"9A"},{name:"クラフト",room:"9B"},{name:"オープンレッスン",room:"6F"}],
         "2026-10-13": [{name:"イラスト",room:"9A"},{name:"謎解き",room:"9B"},{name:"スポーツ",room:"9C"}],
         "2026-10-14": [{name:"企画",room:"9A"},{name:"パーソナルカラー診断",room:"9B"},{name:"ミュージック",room:"9C"},{name:"BC講座・オープンレッスン",room:"6F"}],
         "2026-10-15": [{name:"e-sports",room:"9A"},{name:"書道",room:"9B"},{name:"ダンス",room:"9C"},{name:"検定",room:"6F"}],
